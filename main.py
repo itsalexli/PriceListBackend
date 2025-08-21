@@ -45,17 +45,13 @@ class ScrapeResponse(BaseModel):
     processing_time: float = None
 
 @app.get("/")
+@app.head("/")  # Add HEAD method support for health checks
 async def root():
     return {
         "message": "Optimized Price Scraper API is running", 
-        "version": "2.1.0",
-        "ai_provider": "Google Gemini",
-        "features": ["Web Scraping", "PDF Processing", "AI Categorization", "Price Extraction"],
-        "documentation": "/docs",
-        "status": "operational"
-    }
-
-@app.post("/scrape", response_model=ScrapeResponse)
+        "status": "healthy",
+        "version": "2.1.0"
+    }@app.post("/scrape", response_model=ScrapeResponse)
 async def scrape_website(request: ScrapeRequest):
     temp_filename = None
     start_time = time.time()
@@ -272,10 +268,11 @@ if __name__ == "__main__":
     print("📊 API Version: 2.1.0")
     
     import uvicorn
+    port = int(os.getenv("PORT", 8000))  # Use PORT env var or default to 8000
     uvicorn.run(
         app, 
         host="0.0.0.0", 
-        port=8000,
+        port=port,
         log_level="info",
         timeout_keep_alive=30
     )
