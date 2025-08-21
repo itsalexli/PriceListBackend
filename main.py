@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -18,17 +18,16 @@ from agent import call_gemini_api
 
 app = FastAPI(title="Optimized Price Scraper API - Gemini Powered", version="2.1.0")
 
-# Add CORS middleware with more secure defaults
+# Configure CORS origins from environment or use defaults
+cors_origins = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else ["*"]
+
+# Add CORS middleware 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://localhost:3001",
-        "https://your-production-domain.com"  # Add your production domain here
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_origins=cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "HEAD", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
     expose_headers=["Content-Disposition"]
 )
 
@@ -50,11 +49,27 @@ async def root():
     return {
         "message": "Optimized Price Scraper API is running", 
         "status": "healthy",
-        "version": "2.1.0"
+        "version": "2.1.0",
+        "cors_enabled": True,
+        "endpoints": ["/", "/scrape", "/health", "/test"]
+    }
+
+@app.get("/test")
+async def test_connection():
+    """Simple test endpoint to verify frontend-backend connectivity"""
+    return {
+        "success": True,
+        "message": "Backend connection successful!",
+        "timestamp": time.strftime('%Y-%m-%d %H:%M:%S'),
+        "cors_headers": "enabled"
     }
 
 @app.post("/scrape", response_model=ScrapeResponse)
-async def scrape_website(request: ScrapeRequest):
+async def scrape_website(request: ScrapeRequest, http_request: Request):
+    # Log the request for debugging
+    print(f"🌐 Received scrape request from: {http_request.client.host if http_request.client else 'unknown'}")
+    print(f"📝 Request data: URL={request.url}, max_pages={request.max_pages}")
+    
     temp_filename = None
     start_time = time.time()
     
@@ -258,11 +273,17 @@ async def scrape_website(request: ScrapeRequest):
 
 @app.get("/health")
 async def health_check():
+    gemini_key_configured = bool(os.getenv("GEMINI_API_KEY"))
     return {
         "status": "healthy", 
         "timestamp": time.strftime('%Y-%m-%d %H:%M:%S'),
         "version": "2.1.0",
-        "dependencies": ["Google Gemini API", "FastAPI", "BeautifulSoup", "pdfplumber"]
+        "environment": {
+            "gemini_api_configured": gemini_key_configured,
+            "cors_origins": os.getenv("CORS_ORIGINS", "all"),
+            "port": os.getenv("PORT", "8000")
+        },
+        "dependencies": ["Google Gemini API", "FastAPI", "BeautifulSoup", "PyPDF2"]
     }
 
 if __name__ == "__main__":
