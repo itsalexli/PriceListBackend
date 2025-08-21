@@ -51,7 +51,9 @@ async def root():
         "message": "Optimized Price Scraper API is running", 
         "status": "healthy",
         "version": "2.1.0"
-    }@app.post("/scrape", response_model=ScrapeResponse)
+    }
+
+@app.post("/scrape", response_model=ScrapeResponse)
 async def scrape_website(request: ScrapeRequest):
     temp_filename = None
     start_time = time.time()
