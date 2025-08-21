@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse, urlunparse
 from bs4 import BeautifulSoup
 from collections import deque
 import PyPDF2
-import pdfplumber
+# pdfplumber import moved to function level to handle optional dependency
 import io
 from typing import Set, List, Dict, Tuple
 import hashlib
